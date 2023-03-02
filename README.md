@@ -1,2 +1,2 @@
-# MyRPC
-从零实现RPC框架
+# myRPC
+从零实现一个RPC框架
