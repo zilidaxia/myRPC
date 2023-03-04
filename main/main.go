@@ -1,12 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"myrpc"
-	"myrpc/codec"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -22,6 +21,7 @@ func startServer(addr chan string) {
 }
 
 func main() {
+	/* day1
 	//设置打印时间格式
 	log.SetFlags(1)
 	addr := make(chan string)
@@ -30,9 +30,7 @@ func main() {
 	conn, _ := net.Dial("tcp", <-addr)
 	//到时自动关闭连接
 	defer func() { _ = conn.Close() }()
-
 	time.Sleep(time.Second)
-
 	_ = json.NewEncoder(conn).Encode(myrpc.DefaultOption)
 	cc := codec.NewGobCodec(conn)
 	for i := 0; i < 5; i++ {
@@ -45,5 +43,30 @@ func main() {
 		var reply string
 		_ = cc.ReadBody(&reply)
 		log.Println("reply:", reply)
+	}*/
+	log.SetFlags(0)
+	addr := make(chan string)
+	go startServer(addr)
+	client, _ := myrpc.Dial("tcp", <-addr)
+	defer func() { _ = client.Close() }()
+
+	time.Sleep(time.Second)
+	// send request & receive response
+	var wg sync.WaitGroup
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			args := fmt.Sprintf("geerpc req %d", i)
+			var reply string
+			if err := client.Call("Foo.Sum", args, &reply); err != nil {
+				log.Fatal("call Foo.Sum error:", err)
+			}
+			log.Println("reply:", reply)
+		}(i)
+		go func(i int) {
+
+		}(i)
 	}
+	wg.Wait()
 }
