@@ -29,6 +29,7 @@ const (
 
 var NewCodecFuncMap map[Type]NewCodecFunc
 
+// 类似工厂模式
 func init() {
 	NewCodecFuncMap = make(map[Type]NewCodecFunc)
 	NewCodecFuncMap[GobType] = NewGobCodec
