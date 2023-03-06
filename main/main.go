@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"myrpc"
 	"net"
@@ -9,8 +8,31 @@ import (
 	"time"
 )
 
-// 使用了信道 addr，确保服务端端口监听成功，客户端再发起请求。
+type Foo int
+
+type Args struct{ Num1, Num2 int }
+
+func (f Foo) Sum(args Args, reply *int) error {
+	*reply = args.Num1 + args.Num2
+	return nil
+}
+
 func startServer(addr chan string) {
+	var foo Foo
+	if err := myrpc.Register(&foo); err != nil {
+		log.Fatal("register error:", err)
+	}
+	l, err := net.Listen("tcp", ":0")
+	if err != nil {
+		log.Fatal("network error :", err)
+	}
+	log.Println("start rpc server on ", l.Addr())
+	addr <- l.Addr().String()
+	myrpc.Accept(l)
+}
+
+// 使用了信道 addr，确保服务端端口监听成功，客户端再发起请求。
+/*func startServer(addr chan string) {
 	l, err := net.Listen("tcp", ":0")
 	if err != nil {
 		log.Fatal("network error:", err)
@@ -19,7 +41,7 @@ func startServer(addr chan string) {
 	addr <- l.Addr().String()
 	myrpc.Accept(l)
 }
-
+*/
 func main() {
 	/* day1
 	//设置打印时间格式
@@ -44,6 +66,33 @@ func main() {
 		_ = cc.ReadBody(&reply)
 		log.Println("reply:", reply)
 	}*/
+	/*
+		day2
+		log.SetFlags(0)
+		addr := make(chan string)
+		go startServer(addr)
+		client, _ := myrpc.Dial("tcp", <-addr)
+		defer func() { _ = client.Close() }()
+
+		time.Sleep(time.Second)
+		// send request & receive response
+		var wg sync.WaitGroup
+		for i := 0; i < 5; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				args := fmt.Sprintf("myrpc req %d", i)
+				var reply string
+				if err := client.Call("Foo.Sum", args, &reply); err != nil {
+					log.Fatal("call Foo.Sum error:", err)
+				}
+				log.Println("reply:", reply)
+			}(i)
+			go func(i int) {
+
+			}(i)
+		}
+		wg.Wait()*/
 	log.SetFlags(0)
 	addr := make(chan string)
 	go startServer(addr)
@@ -57,15 +106,12 @@ func main() {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			args := fmt.Sprintf("geerpc req %d", i)
-			var reply string
+			args := &Args{Num1: i, Num2: i * i}
+			var reply int
 			if err := client.Call("Foo.Sum", args, &reply); err != nil {
 				log.Fatal("call Foo.Sum error:", err)
 			}
-			log.Println("reply:", reply)
-		}(i)
-		go func(i int) {
-
+			log.Printf("%d + %d = %d", args.Num1, args.Num2, reply)
 		}(i)
 	}
 	wg.Wait()
